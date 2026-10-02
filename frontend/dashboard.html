@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>My Issues - CampusPulse</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+
+        .tracking-container {
+            padding: 45px 8%;
+        }
+
+        .tracking-container h1 {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .tracking-subtitle {
+            color: #6b7280;
+            margin-bottom: 35px;
+        }
+
+        .live-status {
+            display: inline-block;
+
+            background: #dcfce7;
+
+            color: #166534;
+
+            padding: 8px 14px;
+
+            border-radius: 20px;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            margin-bottom: 25px;
+        }
+
+        .student-issue-card {
+            background: white;
+
+            padding: 25px;
+
+            margin-bottom: 20px;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 5px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .student-issue-header {
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 15px;
+
+            margin-bottom: 15px;
+        }
+
+        .student-issue-header h2 {
+            margin: 0;
+
+            color: #2563eb;
+        }
+
+        .issue-status {
+            padding: 7px 13px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+        }
+
+        .status-open {
+            background: #fef3c7;
+
+            color: #92400e;
+        }
+
+        .status-progress {
+            background: #dbeafe;
+
+            color: #1d4ed8;
+        }
+
+        .status-resolved {
+            background: #dcfce7;
+
+            color: #166534;
+        }
+
+        .issue-info {
+            margin: 10px 0;
+
+            color: #4b5563;
+        }
+
+        .priority-high {
+            color: #dc2626;
+
+            font-weight: bold;
+        }
+
+        .priority-medium {
+            color: #d97706;
+
+            font-weight: bold;
+        }
+
+        .priority-low {
+            color: #16a34a;
+
+            font-weight: bold;
+        }
+
+        .timeline {
+            display: flex;
+
+            align-items: center;
+
+            margin-top: 25px;
+        }
+
+        .timeline-step {
+            text-align: center;
+
+            flex: 1;
+        }
+
+        .timeline-circle {
+            width: 30px;
+
+            height: 30px;
+
+            border-radius: 50%;
+
+            background: #d1d5db;
+
+            color: white;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            margin: auto;
+        }
+
+        .timeline-circle.active {
+            background: #2563eb;
+        }
+
+        .timeline-circle.completed {
+            background: #16a34a;
+        }
+
+        .timeline-label {
+            font-size: 12px;
+
+            margin-top: 7px;
+
+            color: #6b7280;
+        }
+
+        .loading {
+            text-align: center;
+
+            padding: 40px;
+        }
+
+        .error-message {
+            padding: 25px;
+
+            background: #fee2e2;
+
+            color: #991b1b;
+
+            border-radius: 10px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <!-- ==========================================
+         NAVIGATION
+    =========================================== -->
+
+    <nav class="navbar">
+
+        <div class="logo">
+            CampusPulse
+        </div>
+
+        <div class="nav-links">
+
+            <a href="index.html">
+                Home
+            </a>
+
+            <a href="report.html">
+                Report Issue
+            </a>
+
+            <a href="dashboard.html">
+                My Issues
+            </a>
+
+        </div>
+
+    </nav>
+
+
+    <!-- ==========================================
+         MAIN CONTENT
+    =========================================== -->
+
+    <main class="tracking-container">
+
+        <h1>
+            My Issues
+        </h1>
+
+        <p class="tracking-subtitle">
+            Track the status of your reported campus issues.
+        </p>
+
+
+        <div class="live-status">
+            🟢 LIVE UPDATES ENABLED
+        </div>
+
+
+        <div id="issuesContainer">
+
+            <div class="loading">
+                Loading issues...
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <script>
+
+        // ==========================================
+        // LOAD ISSUES
+        // ==========================================
+
+        async function loadIssues() {
+
+            const container =
+                document.getElementById(
+                    "issuesContainer"
+                );
+
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8000/issues"
+                );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Unable to get issues"
+                    );
+
+                }
+
+
+                const issues =
+                    await response.json();
+
+
+                if (issues.length === 0) {
+
+                    container.innerHTML = `
+
+                        <div class="student-issue-card">
+
+                            <h2>
+                                No issues reported yet.
+                            </h2>
+
+                        </div>
+
+                    `;
+
+                    return;
+
+                }
+
+
+                container.innerHTML = "";
+
+
+                issues.forEach(function(issue) {
+
+                    const card =
+                        document.createElement("div");
+
+
+                    card.className =
+                        "student-issue-card";
+
+
+                    // ==========================================
+                    // STATUS CLASS
+                    // ==========================================
+
+                    let statusClass =
+                        "status-open";
+
+
+                    if (issue.status === "IN PROGRESS") {
+
+                        statusClass =
+                            "status-progress";
+
+                    }
+
+
+                    if (issue.status === "RESOLVED") {
+
+                        statusClass =
+                            "status-resolved";
+
+                    }
+
+
+                    // ==========================================
+                    // PRIORITY CLASS
+                    // ==========================================
+
+                    let priorityClass =
+                        "priority-medium";
+
+
+                    if (issue.priority === "High") {
+
+                        priorityClass =
+                            "priority-high";
+
+                    }
+
+
+                    if (issue.priority === "Low") {
+
+                        priorityClass =
+                            "priority-low";
+
+                    }
+
+
+                    // ==========================================
+                    // TIMELINE
+                    // ==========================================
+
+                    let openClass =
+                        "active";
+
+                    let progressClass =
+                        "";
+
+                    let resolvedClass =
+                        "";
+
+
+                    if (issue.status === "IN PROGRESS") {
+
+                        progressClass =
+                            "active";
+
+                    }
+
+
+                    if (issue.status === "RESOLVED") {
+
+                        openClass =
+                            "completed";
+
+                        progressClass =
+                            "completed";
+
+                        resolvedClass =
+                            "completed";
+
+                    }
+
+
+                    // ==========================================
+                    // CREATE CARD
+                    // ==========================================
+
+                    card.innerHTML = `
+
+                        <div class="student-issue-header">
+
+                            <h2>
+
+                                #${issue.id}
+
+                                ${issue.title}
+
+                            </h2>
+
+
+                            <span
+                                class="issue-status ${statusClass}"
+                            >
+
+                                ${issue.status}
+
+                            </span>
+
+                        </div>
+
+
+                        <p class="issue-info">
+
+                            ${issue.description}
+
+                        </p>
+
+
+                        <p class="issue-info">
+
+                            📍
+
+                            <strong>
+                                Location:
+                            </strong>
+
+                            ${issue.location}
+
+                        </p>
+
+
+                        <p class="issue-info">
+
+                            🤖
+
+                            <strong>
+                                AI Category:
+                            </strong>
+
+                            ${issue.category}
+
+                        </p>
+
+
+                        <p class="issue-info">
+
+                            ⚠️
+
+                            <strong>
+                                Priority:
+                            </strong>
+
+
+                            <span class="${priorityClass}">
+
+                                ${issue.priority}
+
+                            </span>
+
+                        </p>
+
+
+                        <!-- ==========================================
+                             STATUS TIMELINE
+                        =========================================== -->
+
+                        <div class="timeline">
+
+
+                            <!-- REPORTED -->
+
+                            <div class="timeline-step">
+
+                                <div
+                                    class="timeline-circle ${openClass}"
+                                >
+
+                                    ✓
+
+                                </div>
+
+
+                                <div class="timeline-label">
+
+                                    Reported
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- IN PROGRESS -->
+
+                            <div class="timeline-step">
+
+                                <div
+                                    class="timeline-circle ${progressClass}"
+                                >
+
+                                    ✓
+
+                                </div>
+
+
+                                <div class="timeline-label">
+
+                                    In Progress
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- RESOLVED -->
+
+                            <div class="timeline-step">
+
+                                <div
+                                    class="timeline-circle ${resolvedClass}"
+                                >
+
+                                    ✓
+
+                                </div>
+
+
+                                <div class="timeline-label">
+
+                                    Resolved
+
+                                </div>
+
+                            </div>
+
+
+                        </div>
+
+                    `;
+
+
+                    container.appendChild(card);
+
+                });
+
+            }
+
+
+            catch (error) {
+
+                console.error(error);
+
+
+                container.innerHTML = `
+
+                    <div class="error-message">
+
+                        ❌ Cannot connect to CampusPulse server.
+
+                    </div>
+
+                `;
+
+            }
+
+        }
+
+
+        // ==========================================
+        // WEBSOCKET CONNECTION
+        // ==========================================
+
+        function connectWebSocket() {
+
+            const socket =
+                new WebSocket(
+                    "ws://127.0.0.1:8000/ws"
+                );
+
+
+            socket.onopen = function() {
+
+                console.log(
+                    "CampusPulse WebSocket connected"
+                );
+
+            };
+
+
+            socket.onmessage = function(event) {
+
+                console.log(
+                    "Real-time update:",
+                    event.data
+                );
+
+
+                // Refresh issues immediately
+
+                loadIssues();
+
+            };
+
+
+            socket.onclose = function() {
+
+                console.log(
+                    "WebSocket disconnected"
+                );
+
+
+                // Try reconnecting after 3 seconds
+
+                setTimeout(
+                    connectWebSocket,
+                    3000
+                );
+
+            };
+
+
+            socket.onerror = function(error) {
+
+                console.log(
+                    "WebSocket error",
+                    error
+                );
+
+            };
+
+        }
+
+
+        // ==========================================
+        // INITIAL LOAD
+        // ==========================================
+
+        loadIssues();
+
+
+        // ==========================================
+        // START WEBSOCKET
+        // ==========================================
+
+        connectWebSocket();
+
+    </script>
+
+
+</body>
+
+</html>

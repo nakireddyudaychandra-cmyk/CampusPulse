@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Report Issue - CampusPulse</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+
+<body>
+
+    <nav class="navbar">
+
+        <div class="logo">
+            CampusPulse
+        </div>
+
+        <div class="nav-links">
+
+            <a href="index.html">
+                Home
+            </a>
+
+            <a href="report.html">
+                Report Issue
+            </a>
+
+            <a href="dashboard.html">
+                My Issues
+            </a>
+
+        </div>
+
+    </nav>
+
+
+    <section class="report-section">
+
+        <div class="report-card">
+
+            <h1>
+                Report a Campus Issue
+            </h1>
+
+            <p>
+                Tell us about the problem and our system
+                will analyze it automatically.
+            </p>
+
+
+            <form id="issueForm">
+
+                <label>
+                    Issue Title
+                </label>
+
+                <input
+                    type="text"
+                    id="title"
+                    placeholder="Example: AC not working"
+                    required
+                >
+
+
+                <label>
+                    Description
+                </label>
+
+                <textarea
+                    id="description"
+                    rows="5"
+                    placeholder="Describe the problem..."
+                    required
+                ></textarea>
+
+
+                <label>
+                    Location
+                </label>
+
+                <input
+                    type="text"
+                    id="location"
+                    placeholder="Example: Room 204"
+                    required
+                >
+
+
+                <button
+                    type="submit"
+                    class="btn"
+                >
+                    Submit Issue
+                </button>
+
+            </form>
+
+
+            <div
+                id="result"
+                class="result"
+            ></div>
+
+        </div>
+
+    </section>
+
+
+<script>
+
+document
+.getElementById("issueForm")
+.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+
+    const title =
+        document.getElementById("title").value;
+
+
+    const description =
+        document.getElementById("description").value;
+
+
+    const location =
+        document.getElementById("location").value;
+
+
+    const result =
+        document.getElementById("result");
+
+
+    result.innerHTML =
+        "Submitting issue...";
+
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:8000/issues",
+            {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    title: title,
+
+                    description: description,
+
+                    location: location
+
+                })
+
+            }
+        );
+
+
+        const data =
+            await response.json();
+
+
+        if (response.ok) {
+
+            result.innerHTML = `
+
+                <div class="success">
+
+                    <h3>
+                        ✅ Issue Submitted
+                    </h3>
+
+                    <p>
+                        Issue ID:
+                        #${data.issue_id}
+                    </p>
+
+                    <p>
+                        Category:
+                        <strong>
+                            ${data.category}
+                        </strong>
+                    </p>
+
+                    <p>
+                        Priority:
+                        <strong>
+                            ${data.priority}
+                        </strong>
+                    </p>
+
+                    <p>
+                        Status:
+                        <strong>
+                            ${data.status}
+                        </strong>
+                    </p>
+
+                </div>
+
+            `;
+
+            document
+            .getElementById("issueForm")
+            .reset();
+
+        }
+
+        else {
+
+            result.innerHTML =
+                "❌ Something went wrong.";
+
+        }
+
+    }
+
+    catch (error) {
+
+        result.innerHTML = `
+
+            <div class="error">
+
+                ❌ Cannot connect to CampusPulse server.
+
+                <br><br>
+
+                Make sure the FastAPI server is running.
+
+            </div>
+
+        `;
+
+    }
+
+});
+
+</script>
+
+
+</body>
+
+</html>

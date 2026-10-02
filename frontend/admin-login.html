@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusPulse Admin Login</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            background: #f4f7fb;
+        }
+
+        .login-container {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            padding: 35px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .login-card h1 {
+            margin-bottom: 8px;
+            color: #1f2937;
+        }
+
+        .login-card p {
+            color: #64748b;
+            margin-bottom: 25px;
+        }
+
+        .login-card label {
+            display: block;
+            margin: 14px 0 7px;
+            font-weight: 600;
+        }
+
+        .login-card input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .login-btn {
+            width: 100%;
+            margin-top: 22px;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .login-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .error {
+            margin-top: 15px;
+            color: #b91c1c;
+            background: #fee2e2;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar">
+    <div class="logo">CampusPulse</div>
+</nav>
+
+<div class="login-container">
+
+    <div class="login-card">
+
+        <h1>Admin Login</h1>
+
+        <p>
+            Login to manage campus maintenance issues.
+        </p>
+
+        <form id="loginForm">
+
+            <label for="username">Username</label>
+            <input
+                id="username"
+                type="text"
+                required
+            >
+
+            <label for="password">Password</label>
+            <input
+                id="password"
+                type="password"
+                required
+            >
+
+            <button
+                class="login-btn"
+                type="submit">
+                Login
+            </button>
+
+        </form>
+
+        <div id="errorMessage" class="error"></div>
+
+    </div>
+
+</div>
+
+<script>
+
+const API_BASE = "http://127.0.0.1:8000";
+
+document
+    .getElementById("loginForm")
+    .addEventListener("submit", async function(event) {
+
+        event.preventDefault();
+
+        const username =
+            document.getElementById("username").value;
+
+        const password =
+            document.getElementById("password").value;
+
+        const errorMessage =
+            document.getElementById("errorMessage");
+
+        errorMessage.style.display = "none";
+
+        try {
+
+            const response = await fetch(
+                `${API_BASE}/admin/login`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail || "Login failed"
+                );
+            }
+
+            localStorage.setItem(
+                "campuspulse_admin_token",
+                data.token
+            );
+
+            localStorage.setItem(
+                "campuspulse_admin",
+                "true"
+            );
+
+            sessionStorage.setItem(
+                "campuspulse_admin_logged_in",
+                "true"
+            );
+
+            sessionStorage.setItem(
+                "campuspulse_admin_login_time",
+                Date.now().toString()
+            );
+
+            window.location.replace("admin.html");
+
+        } catch (error) {
+
+            errorMessage.textContent =
+                error.message;
+
+            errorMessage.style.display =
+                "block";
+        }
+
+    });
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <!-- =========================================
+     ADMIN LOGIN PROTECTION
+========================================== -->
+<script>
+    document.documentElement.style.visibility = "hidden";
+    const ADMIN_API_BASE = "http://127.0.0.1:8000";
+
+    async function verifyAdminAccess() {
+        const token = localStorage.getItem("campuspulse_admin_token");
+        const session = sessionStorage.getItem("campuspulse_admin_logged_in");
+
+        if (session !== "true" || !token) {
+            localStorage.removeItem("campuspulse_admin_token");
+            localStorage.removeItem("campuspulse_admin");
+            sessionStorage.removeItem("campuspulse_admin_logged_in");
+            window.location.replace("admin-login.html");
+            return false;
+        }
+
+        try {
+            const response = await fetch(`${ADMIN_API_BASE}/admin/check`, {
+                method: "GET",
+                headers: { "X-Admin-Key": token },
+                cache: "no-store"
+            });
+
+            if (!response.ok) throw new Error("Admin authentication failed");
+
+            document.documentElement.style.visibility = "visible";
+            return true;
+        } catch (error) {
+            console.error("Admin verification failed:", error);
+            localStorage.removeItem("campuspulse_admin_token");
+            localStorage.removeItem("campuspulse_admin");
+            sessionStorage.removeItem("campuspulse_admin_logged_in");
+            window.location.replace("admin-login.html");
+            return false;
+        }
+    }
+
+    verifyAdminAccess();
+</script>
+
+    <title>CampusPulse Admin</title>
+
+    <link rel="stylesheet" href="style.css">
+
+
+    <style>
+
+        /* =========================================
+           ADMIN PAGE
+        ========================================= */
+
+        .admin-container {
+
+            max-width: 1400px;
+
+            margin: 0 auto;
+
+            padding: 50px 20px;
+
+        }
+
+
+        .admin-header {
+
+            margin-bottom: 35px;
+
+        }
+
+
+        .admin-header h1 {
+
+            font-size: 42px;
+
+            margin-bottom: 8px;
+
+            color: #1f2937;
+
+        }
+
+
+        .admin-header p {
+
+            font-size: 18px;
+
+            color: #64748b;
+
+        }
+
+
+        /* =========================================
+           ADMIN HEADER ACTIONS
+        ========================================== */
+
+        .admin-actions {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 20px;
+
+            margin-bottom: 25px;
+
+            flex-wrap: wrap;
+
+        }
+
+
+        .logout-btn {
+
+            padding: 11px 20px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            background: #dc2626;
+
+            color: white;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .logout-btn:hover {
+
+            background: #b91c1c;
+
+        }
+
+
+        /* =========================================
+           STATISTICS
+        ========================================== */
+
+        .stats-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 20px;
+
+            margin-bottom: 45px;
+
+        }
+
+
+        .stat-card {
+
+            background: white;
+
+            padding: 30px;
+
+            border-radius: 15px;
+
+            text-align: center;
+
+            box-shadow:
+                0 8px 25px
+                rgba(0,0,0,0.06);
+
+        }
+
+
+        .stat-number {
+
+            font-size: 42px;
+
+            font-weight: bold;
+
+            color: #2563eb;
+
+        }
+
+
+        .stat-label {
+
+            margin-top: 8px;
+
+            font-size: 17px;
+
+            color: #64748b;
+
+        }
+
+
+        /* =========================================
+           CONNECTION MESSAGE
+        ========================================== */
+
+        .message {
+
+            padding: 15px 20px;
+
+            border-radius: 10px;
+
+            margin-bottom: 25px;
+
+            font-size: 16px;
+
+        }
+
+
+        .success {
+
+            background: #dcfce7;
+
+            color: #166534;
+
+        }
+
+
+        .error {
+
+            background: #fee2e2;
+
+            color: #991b1b;
+
+        }
+
+
+        /* =========================================
+           ISSUES GRID
+        ========================================== */
+
+        .issues-title {
+
+            font-size: 30px;
+
+            margin-bottom: 25px;
+
+            color: #1f2937;
+
+        }
+
+
+        .issues-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 25px;
+
+        }
+
+
+        .issue-card {
+
+            background: white;
+
+            border-radius: 15px;
+
+            padding: 25px;
+
+            box-shadow:
+                0 8px 25px
+                rgba(0,0,0,0.06);
+
+        }
+
+
+        .issue-title {
+
+            font-size: 22px;
+
+            font-weight: bold;
+
+            color: #2563eb;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .issue-description {
+
+            color: #475569;
+
+            line-height: 1.5;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        .issue-info {
+
+            margin: 10px 0;
+
+            color: #334155;
+
+        }
+
+
+        .issue-info strong {
+
+            color: #1e293b;
+
+        }
+
+
+        /* =========================================
+           STAFF BOX
+        ========================================== */
+
+        .staff-box {
+
+            margin-top: 20px;
+
+            padding: 18px;
+
+            background: #f8fafc;
+
+            border-radius: 10px;
+
+        }
+
+
+        .staff-box h4 {
+
+            margin-bottom: 12px;
+
+            color: #1e293b;
+
+        }
+
+
+        .staff-select {
+
+            width: 100%;
+
+            padding: 11px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius: 8px;
+
+            font-size: 15px;
+
+            margin-bottom: 10px;
+
+            background: white;
+
+        }
+
+
+        .assign-btn {
+
+            width: 100%;
+
+            padding: 11px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            background: #2563eb;
+
+            color: white;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .assign-btn:hover {
+
+            background: #1d4ed8;
+
+        }
+
+
+        .assign-btn:disabled {
+
+            background: #94a3b8;
+
+            cursor: not-allowed;
+
+        }
+
+
+        /* =========================================
+           ASSIGNED STAFF
+        ========================================== */
+
+        .assigned-staff {
+
+            background: #eff6ff;
+
+            border-radius: 10px;
+
+            padding: 15px;
+
+            margin-top: 15px;
+
+        }
+
+
+        .assigned-staff strong {
+
+            color: #1d4ed8;
+
+        }
+
+
+        /* =========================================
+           STATUS
+        ========================================== */
+
+        .status-box {
+
+            margin-top: 18px;
+
+        }
+
+
+        .status-select {
+
+            width: 100%;
+
+            padding: 10px;
+
+            border:
+                1px solid #cbd5e1;
+
+            border-radius: 8px;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .status-btn {
+
+            width: 100%;
+
+            padding: 10px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            background: #16a34a;
+
+            color: white;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .status-btn:hover {
+
+            background: #15803d;
+
+        }
+
+
+        /* =========================================
+           STATUS BADGES
+        ========================================== */
+
+        .status-badge {
+
+            display: inline-block;
+
+            padding: 7px 14px;
+
+            border-radius: 20px;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            margin-top: 10px;
+
+        }
+
+
+        .status-open {
+
+            background: #fef3c7;
+
+            color: #92400e;
+
+        }
+
+
+        .status-progress {
+
+            background: #dbeafe;
+
+            color: #1d4ed8;
+
+        }
+
+
+        .status-resolved {
+
+            background: #dcfce7;
+
+            color: #166534;
+
+        }
+
+
+        /* =========================================
+           CLUSTERS
+        ========================================== */
+
+        .clusters-section {
+
+            margin-top: 60px;
+
+        }
+
+
+        .clusters-section h2 {
+
+            font-size: 30px;
+
+            margin-bottom: 25px;
+
+        }
+
+
+        .cluster-card {
+
+            background: white;
+
+            padding: 25px;
+
+            border-radius: 15px;
+
+            margin-bottom: 20px;
+
+            box-shadow:
+                0 8px 25px
+                rgba(0,0,0,0.06);
+
+        }
+
+
+        .cluster-title {
+
+            font-size: 22px;
+
+            color: #2563eb;
+
+            font-weight: bold;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        /* =========================================
+           RESPONSIVE
+        ========================================== */
+
+        @media (max-width: 1000px) {
+
+            .stats-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+
+            .issues-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+        }
+
+
+        @media (max-width: 700px) {
+
+            .stats-grid {
+
+                grid-template-columns: 1fr;
+
+            }
+
+
+            .issues-grid {
+
+                grid-template-columns: 1fr;
+
+            }
+
+
+            .admin-header h1 {
+
+                font-size: 32px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================
+     NAVBAR
+========================================== -->
+
+<nav class="navbar">
+
+    <div class="logo">
+
+        CampusPulse
+
+    </div>
+
+
+    <div class="nav-links">
+
+        <a href="admin.html">
+            Home
+        </a>
+
+    </div>
+
+</nav>
+
+
+
+<!-- =========================================
+     MAIN CONTAINER
+========================================== -->
+
+<div class="admin-container">
+
+
+    <!-- =========================================
+         ADMIN HEADER
+    ========================================== -->
+
+    <div class="admin-actions">
+
+        <div class="admin-header">
+
+            <h1>
+                CampusPulse Admin
+            </h1>
+
+            <p>
+                Monitor and manage campus
+                maintenance issues.
+            </p>
+
+        </div>
+
+
+        <button
+            class="logout-btn"
+            onclick="logoutAdmin()">
+
+            Logout
+
+        </button>
+
+    </div>
+
+
+
+    <!-- =========================================
+         STATISTICS
+    ========================================== -->
+
+    <div class="stats-grid">
+
+
+        <div class="stat-card">
+
+            <div
+                class="stat-number"
+                id="totalReports">
+
+                0
+
+            </div>
+
+            <div class="stat-label">
+
+                Total Reports
+
+            </div>
+
+        </div>
+
+
+
+        <div class="stat-card">
+
+            <div
+                class="stat-number"
+                id="openReports">
+
+                0
+
+            </div>
+
+            <div class="stat-label">
+
+                Open
+
+            </div>
+
+        </div>
+
+
+
+        <div class="stat-card">
+
+            <div
+                class="stat-number"
+                id="progressReports">
+
+                0
+
+            </div>
+
+            <div class="stat-label">
+
+                In Progress
+
+            </div>
+
+        </div>
+
+
+
+        <div class="stat-card">
+
+            <div
+                class="stat-number"
+                id="resolvedReports">
+
+                0
+
+            </div>
+
+            <div class="stat-label">
+
+                Resolved
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =========================================
+         CONNECTION MESSAGE
+    ========================================== -->
+
+    <div
+        id="connectionMessage"
+        class="message">
+
+        Connecting to CampusPulse server...
+
+    </div>
+
+
+
+    <!-- =========================================
+         ISSUES
+    ========================================== -->
+
+    <h2 class="issues-title">
+
+        All Reported Issues
+
+    </h2>
+
+
+    <div
+        id="issuesContainer"
+        class="issues-grid">
+
+    </div>
+
+
+
+    <!-- =========================================
+         AI CLUSTERS
+    ========================================== -->
+
+    <div class="clusters-section">
+
+        <h2>
+
+            🤖 AI Issue Clusters
+
+        </h2>
+
+
+        <div id="clustersContainer">
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+
+// =================================================
+// API URL
+// =================================================
+
+const API_BASE =
+    "http://127.0.0.1:8000";
+
+
+function adminHeaders(extra = {}) {
+
+    const token =
+        localStorage.getItem(
+            "campuspulse_admin_token"
+        );
+
+    return {
+        ...extra,
+        "X-Admin-Key": token
+    };
+}
+
+
+async function adminFetch(
+    url,
+    options = {}
+) {
+
+    options.headers =
+        adminHeaders(
+            options.headers || {}
+        );
+
+    const response =
+        await fetch(
+            url,
+            options
+        );
+
+    if (response.status === 401) {
+
+        localStorage.removeItem(
+            "campuspulse_admin_token"
+        );
+
+        localStorage.removeItem(
+            "campuspulse_admin"
+        );
+
+        sessionStorage.removeItem(
+            "campuspulse_admin_logged_in"
+        );
+
+        sessionStorage.removeItem(
+            "campuspulse_admin_login_time"
+        );
+
+        window.location.replace(
+            "admin-login.html"
+        );
+
+        throw new Error(
+            "Admin session expired"
+        );
+    }
+
+    return response;
+}
+
+
+
+// =================================================
+// STORE STAFF
+// =================================================
+
+let staffList = [];
+
+
+
+// =================================================
+// LOGOUT
+// =================================================
+
+async function logoutAdmin() {
+
+    try {
+
+        await adminFetch(
+            `${API_BASE}/admin/logout`,
+            {
+                method: "POST"
+            }
+        );
+
+    } catch (error) {
+
+        console.log(error);
+
+    }
+
+    localStorage.removeItem(
+        "campuspulse_admin_token"
+    );
+
+    localStorage.removeItem(
+        "campuspulse_admin"
+    );
+
+    sessionStorage.removeItem(
+        "campuspulse_admin_logged_in"
+    );
+
+    sessionStorage.removeItem(
+        "campuspulse_admin_login_time"
+    );
+
+    window.location.replace(
+        "admin-login.html"
+    );
+}
+
+
+
+// =================================================
+// LOAD EVERYTHING
+// =================================================
+
+async function loadAdminData() {
+
+    try {
+
+        await loadStaff();
+
+        await loadIssues();
+
+        await loadClusters();
+
+
+        document.getElementById(
+            "connectionMessage"
+        ).className =
+            "message success";
+
+
+        document.getElementById(
+            "connectionMessage"
+        ).innerHTML =
+            "✅ Connected to CampusPulse server successfully.";
+
+    }
+
+
+    catch (error) {
+
+        console.error(error);
+
+
+        document.getElementById(
+            "connectionMessage"
+        ).className =
+            "message error";
+
+
+        document.getElementById(
+            "connectionMessage"
+        ).innerHTML =
+            "❌ Cannot connect to CampusPulse server." +
+            "<br><br>" +
+            "Make sure the FastAPI backend is running.";
+
+    }
+
+}
+
+
+
+// =================================================
+// LOAD STAFF
+// =================================================
+
+async function loadStaff() {
+
+    const response =
+        await adminFetch(
+            `${API_BASE}/staff`
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Unable to load staff"
+        );
+
+    }
+
+
+    staffList =
+        await response.json();
+
+
+    console.log(
+        "Staff:",
+        staffList
+    );
+
+}
+
+
+
+// =================================================
+// LOAD ISSUES
+// =================================================
+
+async function loadIssues() {
+
+    const response =
+        await adminFetch(
+            `${API_BASE}/issues`
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Unable to load issues"
+        );
+
+    }
+
+
+    const issues =
+        await response.json();
+
+
+    updateStatistics(
+        issues
+    );
+
+
+    displayIssues(
+        issues
+    );
+
+}
+
+
+
+// =================================================
+// UPDATE STATISTICS
+// =================================================
+
+function updateStatistics(
+    issues
+) {
+
+    document.getElementById(
+        "totalReports"
+    ).textContent =
+        issues.length;
+
+
+    document.getElementById(
+        "openReports"
+    ).textContent =
+        issues.filter(
+            issue =>
+                issue.status === "OPEN"
+        ).length;
+
+
+    document.getElementById(
+        "progressReports"
+    ).textContent =
+        issues.filter(
+            issue =>
+                issue.status === "IN PROGRESS"
+        ).length;
+
+
+    document.getElementById(
+        "resolvedReports"
+    ).textContent =
+        issues.filter(
+            issue =>
+                issue.status === "RESOLVED"
+        ).length;
+
+}
+
+
+
+// =================================================
+// DISPLAY ISSUES
+// =================================================
+
+function displayIssues(
+    issues
+) {
+
+    const container =
+        document.getElementById(
+            "issuesContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (issues.length === 0) {
+
+        container.innerHTML = `
+
+            <div class="message">
+
+                No issues reported yet.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    issues.forEach(
+        issue => {
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "issue-card";
+
+
+            card.innerHTML = `
+
+                <div class="issue-title">
+
+                    #${issue.id}
+
+                    ${escapeHTML(
+                        issue.title
+                    )}
+
+                </div>
+
+
+                <div class="issue-description">
+
+                    ${escapeHTML(
+                        issue.description
+                    )}
+
+                </div>
+
+
+                <div class="issue-info">
+
+                    📍
+
+                    <strong>
+                        Location:
+                    </strong>
+
+                    ${escapeHTML(
+                        issue.location
+                    )}
+
+                </div>
+
+
+                <div class="issue-info">
+
+                    🤖
+
+                    <strong>
+                        AI Category:
+                    </strong>
+
+                    ${escapeHTML(
+                        issue.category ||
+                        "Pending"
+                    )}
+
+                </div>
+
+
+                <div class="issue-info">
+
+                    ⚠️
+
+                    <strong>
+                        Priority:
+                    </strong>
+
+                    ${escapeHTML(
+                        issue.priority ||
+                        "Pending"
+                    )}
+
+                </div>
+
+
+                <div>
+
+                    <span
+                        class="
+                            status-badge
+                            ${getStatusClass(
+                                issue.status
+                            )}
+                        ">
+
+                        ${escapeHTML(
+                            issue.status
+                        )}
+
+                    </span>
+
+                </div>
+
+
+                ${getAssignedStaffHTML(
+                    issue
+                )}
+
+
+                <div class="staff-box">
+
+                    <h4>
+
+                        👨‍🔧 Assign Staff
+
+                    </h4>
+
+
+                    <select
+                        class="staff-select"
+                        id="staff-${issue.id}">
+
+                        <option value="">
+
+                            Select staff member
+
+                        </option>
+
+
+                        ${getStaffOptions(
+                            issue
+                        )}
+
+                    </select>
+
+
+                    <button
+                        class="assign-btn"
+                        onclick="
+                            assignStaff(
+                                ${issue.id}
+                            )
+                        ">
+
+                        Assign Staff
+
+                    </button>
+
+                </div>
+
+
+                <div class="status-box">
+
+                    <select
+                        class="status-select"
+                        id="status-${issue.id}">
+
+
+                        <option
+                            value="OPEN"
+                            ${
+                                issue.status === "OPEN"
+                                ? "selected"
+                                : ""
+                            }>
+
+                            OPEN
+
+                        </option>
+
+
+                        <option
+                            value="IN PROGRESS"
+                            ${
+                                issue.status === "IN PROGRESS"
+                                ? "selected"
+                                : ""
+                            }>
+
+                            IN PROGRESS
+
+                        </option>
+
+
+                        <option
+                            value="RESOLVED"
+                            ${
+                                issue.status === "RESOLVED"
+                                ? "selected"
+                                : ""
+                            }>
+
+                            RESOLVED
+
+                        </option>
+
+
+                    </select>
+
+
+                    <button
+                        class="status-btn"
+                        onclick="
+                            updateStatus(
+                                ${issue.id}
+                            )
+                        ">
+
+                        Update Status
+
+                    </button>
+
+                </div>
+
+            `;
+
+
+            container.appendChild(
+                card
+            );
+
+        }
+    );
+
+}
+
+
+
+// =================================================
+// STAFF OPTIONS
+// =================================================
+
+function getStaffOptions(
+    issue
+) {
+
+    if (!staffList.length) {
+
+        return `
+
+            <option value="">
+
+                No staff available
+
+            </option>
+
+        `;
+
+    }
+
+
+    return staffList
+        .map(
+            staff => `
+
+                <option
+                    value="${staff.id}"
+                    ${
+                        issue.assigned_staff_id ==
+                        staff.id
+                        ? "selected"
+                        : ""
+                    }>
+
+                    ${escapeHTML(
+                        staff.name
+                    )}
+
+                    -
+
+                    ${escapeHTML(
+                        staff.specialization
+                    )}
+
+                </option>
+
+            `
+        )
+        .join("");
+
+}
+
+
+
+// =================================================
+// ASSIGNED STAFF HTML
+// =================================================
+
+function getAssignedStaffHTML(
+    issue
+) {
+
+    if (!issue.assigned_staff_id) {
+
+        return `
+
+            <div class="assigned-staff">
+
+                👨‍🔧
+
+                <strong>
+                    Staff:
+                </strong>
+
+                Not assigned yet
+
+            </div>
+
+        `;
+
+    }
+
+
+    const staff =
+        staffList.find(
+            s =>
+                s.id ==
+                issue.assigned_staff_id
+        );
+
+
+    if (!staff) {
+
+        return `
+
+            <div class="assigned-staff">
+
+                👨‍🔧
+
+                <strong>
+                    Staff ID:
+                </strong>
+
+                ${issue.assigned_staff_id}
+
+            </div>
+
+        `;
+
+    }
+
+
+    return `
+
+        <div class="assigned-staff">
+
+            👨‍🔧
+
+            <strong>
+                Assigned Staff
+            </strong>
+
+            <br>
+
+            ${escapeHTML(
+                staff.name
+            )}
+
+            <br>
+
+            🔧
+
+            Specialization:
+
+            ${escapeHTML(
+                staff.specialization
+            )}
+
+        </div>
+
+    `;
+
+}
+
+
+
+// =================================================
+// ASSIGN STAFF
+// =================================================
+
+async function assignStaff(
+    issueId
+) {
+
+    const select =
+        document.getElementById(
+            `staff-${issueId}`
+        );
+
+
+    const staffId =
+        select.value;
+
+
+    if (!staffId) {
+
+        alert(
+            "Please select a staff member first."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await adminFetch(
+                `${API_BASE}/issues/${issueId}/assign`,
+                {
+
+                    method: "PUT",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            staff_id:
+                                Number(
+                                    staffId
+                                )
+
+                        })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Assignment failed"
+            );
+
+        }
+
+
+        alert(
+            "✅ Staff assigned successfully!"
+        );
+
+
+        await loadIssues();
+
+    }
+
+
+    catch (error) {
+
+        console.error(error);
+
+
+        alert(
+            "❌ Could not assign staff.\n\n" +
+            error.message
+        );
+
+    }
+
+}
+
+
+
+// =================================================
+// UPDATE STATUS
+// =================================================
+
+async function updateStatus(
+    issueId
+) {
+
+    const select =
+        document.getElementById(
+            `status-${issueId}`
+        );
+
+
+    const status =
+        select.value;
+
+
+    try {
+
+        const response =
+            await adminFetch(
+                `${API_BASE}/issues/${issueId}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            status: status
+                        })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Status update failed"
+            );
+
+        }
+
+
+        alert(
+            "✅ Issue status updated!"
+        );
+
+
+        await loadIssues();
+
+    }
+
+
+    catch (error) {
+
+        console.error(error);
+
+
+        alert(
+            "❌ Could not update status.\n\n" +
+            error.message
+        );
+
+    }
+
+}
+
+
+
+// =================================================
+// LOAD AI CLUSTERS
+// =================================================
+
+async function loadClusters() {
+
+    const response =
+        await adminFetch(
+            `${API_BASE}/clusters`
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Unable to load clusters"
+        );
+
+    }
+
+
+    const clusters =
+        await response.json();
+
+
+    displayClusters(
+        clusters
+    );
+
+}
+
+
+
+// =================================================
+// DISPLAY CLUSTERS
+// =================================================
+
+function displayClusters(
+    clusters
+) {
+
+    const container =
+        document.getElementById(
+            "clustersContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (!clusters.length) {
+
+        container.innerHTML = `
+
+            <div class="cluster-card">
+
+                No related issue clusters found.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    clusters.forEach(
+        cluster => {
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "cluster-card";
+
+
+            card.innerHTML = `
+
+                <div class="cluster-title">
+
+                    🔴 Possible Common Issue
+
+                </div>
+
+
+                <p>
+
+                    <strong>
+                        Location:
+                    </strong>
+
+                    ${escapeHTML(
+                        cluster.location
+                    )}
+
+                </p>
+
+
+                <p>
+
+                    <strong>
+                        Category:
+                    </strong>
+
+                    ${escapeHTML(
+                        cluster.category
+                    )}
+
+                </p>
+
+
+                <p>
+
+                    <strong>
+                        Related Reports:
+                    </strong>
+
+                    ${cluster.report_count}
+
+                </p>
+
+
+                <p>
+
+                    The AI system detected
+                    multiple reports that may
+                    represent the same campus
+                    problem.
+
+                </p>
+
+            `;
+
+
+            container.appendChild(
+                card
+            );
+
+        }
+    );
+
+}
+
+
+
+// =================================================
+// STATUS CLASS
+// =================================================
+
+function getStatusClass(
+    status
+) {
+
+    if (
+        status === "RESOLVED"
+    ) {
+
+        return "status-resolved";
+
+    }
+
+
+    if (
+        status === "IN PROGRESS"
+    ) {
+
+        return "status-progress";
+
+    }
+
+
+    return "status-open";
+
+}
+
+
+
+// =================================================
+// SECURITY / HTML ESCAPE
+// =================================================
+
+function escapeHTML(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+
+// =================================================
+// START
+// =================================================
+
+loadAdminData();
+
+
+
+// =================================================
+// AUTO REFRESH
+// =================================================
+
+setInterval(
+    loadAdminData,
+    10000
+);
+
+
+</script>
+
+
+</body>
+
+</html>
